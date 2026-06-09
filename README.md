@@ -62,3 +62,4 @@ Aplicación móvil nativa Android para SmartBook CDI CECAR, desarrollada con:
 - Vendedor:
   - `nauxcdi@yopmail.com`
   - `AuxCDI2026`
+# SmartBookMobile
