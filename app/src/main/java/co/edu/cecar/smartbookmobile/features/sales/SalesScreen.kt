@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -49,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -257,7 +259,7 @@ private fun SaleFormDialog(
     }
 
     val total = items.sumOf { item ->
-        val price = books.firstOrNull { it.id == item.bookId }?.valorVentaPulico ?: 0.0
+        val price = books.firstOrNull { it.id == item.bookId }?.valorVentaPublico ?: 0.0
         val quantity = item.quantity.toIntOrNull() ?: 0
         price * quantity
     }
@@ -625,7 +627,7 @@ private fun ItemsSection(
             items.forEach { item ->
                 val selectedBook = books.firstOrNull { it.id == item.bookId }
                 val lotsForBook = selectedBook?.id?.let { getLotsForBook(it, books, inventory, lots) }.orEmpty()
-                val unitPrice = selectedBook?.valorVentaPulico ?: 0.0
+                val unitPrice = selectedBook?.valorVentaPublico ?: 0.0
                 val quantity = item.quantity.toIntOrNull() ?: 0
                 val subtotal = unitPrice * quantity
 
@@ -681,6 +683,7 @@ private fun ItemsSection(
                                             onUpdateItem(item.id) { current -> current.copy(quantity = value.filter { ch -> ch.isDigit() }) }
                                         },
                                         label = { Text("Cantidad") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         modifier = Modifier.weight(0.8f),
                                     )
@@ -724,6 +727,7 @@ private fun ItemsSection(
                                         onUpdateItem(item.id) { current -> current.copy(quantity = value.filter { ch -> ch.isDigit() }) }
                                     },
                                     label = { Text("Cantidad") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -733,6 +737,14 @@ private fun ItemsSection(
                                     color = CdiRed,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
+                                )
+                            }
+
+                            if (selectedBook != null && unitPrice <= 0.0) {
+                                Text(
+                                    "Este libro no tiene valor de venta público registrado. Actualiza el libro o registra un ingreso con precio para calcular el total.",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
                                 )
                             }
 

@@ -1,8 +1,10 @@
 package co.edu.cecar.smartbookmobile.core.model
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
@@ -83,6 +85,7 @@ data class UpdateClientDto(
 )
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class Book(
     val id: Int? = null,
     val nombre: String = "",
@@ -91,8 +94,8 @@ data class Book(
     val edicion: String = "",
     val lote: String? = null,
     @SerialName("stockTotal") val stockTotal: Int = 0,
-    @SerialName("valorCompa") val valorCompa: Double? = null,
-    @SerialName("valorVentaPulico") val valorVentaPulico: Double? = null,
+    @SerialName("valorCompra") @JsonNames("valorCompa") val valorCompra: Double? = null,
+    @SerialName("valorVentaPublico") @JsonNames("valorVentaPulico") val valorVentaPublico: Double? = null,
 ) {
     fun tipoLabel(): String {
         val primitive = tipoRaw as? JsonPrimitive ?: return ""
@@ -127,6 +130,10 @@ data class UpdateBookDto(
     val nivel: String,
     val tipo: Int,
     val edicion: String,
+    val unidades: Int? = null,
+    val lote: String? = null,
+    val valorCompra: Double? = null,
+    val valorVentaPublico: Double? = null,
 )
 
 @Serializable

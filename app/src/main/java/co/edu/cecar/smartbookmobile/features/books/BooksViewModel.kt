@@ -66,6 +66,10 @@ class BooksViewModel(
                         nivel = nivel,
                         tipo = tipo,
                         edicion = edicion,
+                        unidades = unidades,
+                        lote = lote,
+                        valorCompra = valorCompra,
+                        valorVentaPublico = valorVentaPublico,
                     ),
                 )
             } else {

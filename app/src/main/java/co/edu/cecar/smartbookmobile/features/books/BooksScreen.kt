@@ -4,9 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -26,6 +30,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -138,23 +144,59 @@ private fun BookFormDialog(
     var edicion by remember(book) { mutableStateOf(book.edicion) }
     var lote by remember(book) { mutableStateOf(book.lote.orEmpty()) }
     var unidades by remember(book) { mutableStateOf(book.stockTotal.toString()) }
-    var valorCompra by remember(book) { mutableStateOf((book.valorCompa ?: 0.0).toString()) }
-    var valorVenta by remember(book) { mutableStateOf((book.valorVentaPulico ?: 0.0).toString()) }
+    var valorCompra by remember(book) { mutableStateOf(book.valorCompra?.toPlainInput().orEmpty()) }
+    var valorVenta by remember(book) { mutableStateOf(book.valorVentaPublico?.toPlainInput().orEmpty()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.imePadding(),
         title = { Text(if (book.id == null) "Nuevo Libro" else "Editar Libro") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = idText, onValueChange = { idText = it }, label = { Text("ID (opcional)") })
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = idText,
+                    onValueChange = { idText = it.onlyDigits() },
+                    label = { Text("ID (opcional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
                 OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre") })
                 OutlinedTextField(value = nivel, onValueChange = { nivel = it }, label = { Text("Nivel") })
-                OutlinedTextField(value = tipo, onValueChange = { tipo = it }, label = { Text("Tipo (1=StudentsBook, 2=Workbook)") })
+                OutlinedTextField(
+                    value = tipo,
+                    onValueChange = { tipo = it.onlyDigits().take(1) },
+                    label = { Text("Tipo (1=StudentsBook, 2=Workbook)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
                 OutlinedTextField(value = edicion, onValueChange = { edicion = it }, label = { Text("Edición") })
                 OutlinedTextField(value = lote, onValueChange = { lote = it }, label = { Text("Lote") })
-                OutlinedTextField(value = unidades, onValueChange = { unidades = it }, label = { Text("Unidades") })
-                OutlinedTextField(value = valorCompra, onValueChange = { valorCompra = it }, label = { Text("Valor compra") })
-                OutlinedTextField(value = valorVenta, onValueChange = { valorVenta = it }, label = { Text("Valor venta público") })
+                OutlinedTextField(
+                    value = unidades,
+                    onValueChange = { unidades = it.onlyDigits() },
+                    label = { Text("Unidades") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = valorCompra,
+                    onValueChange = { valorCompra = it.decimalInput() },
+                    label = { Text("Valor compra") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = valorVenta,
+                    onValueChange = { valorVenta = it.decimalInput() },
+                    label = { Text("Valor venta público") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                )
             }
         },
         confirmButton = {
@@ -184,3 +226,24 @@ private fun BookFormDialog(
         },
     )
 }
+
+private fun String.onlyDigits(): String = filter { it.isDigit() }
+
+private fun String.decimalInput(): String {
+    val normalized = replace(',', '.')
+    val builder = StringBuilder()
+    var hasDot = false
+    normalized.forEach { char ->
+        when {
+            char.isDigit() -> builder.append(char)
+            char == '.' && !hasDot -> {
+                builder.append(char)
+                hasDot = true
+            }
+        }
+    }
+    return builder.toString()
+}
+
+private fun Double.toPlainInput(): String =
+    if (this % 1.0 == 0.0) toLong().toString() else toString()
