@@ -1,0 +1,14 @@
+.gradle/
+.kotlin/
+.idea/
+local.properties
+*.iml
+.DS_Store
+build/
+app/build/
+.android-sdk/
+.vscode/
+captures/
+*.apk
+*.aab
+*.hprof
