@@ -3,7 +3,6 @@ package co.edu.cecar.smartbookmobile.features.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -250,31 +249,28 @@ private fun GeneralInfoCard(
                         color = CdiRed,
                         style = MaterialTheme.typography.titleLarge,
                     )
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val compact = maxWidth < 420.dp
-                        val actionModifier = if (compact) Modifier.fillMaxWidth() else Modifier
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         QuickActionChip(
                             text = "Agregar cliente",
                             color = CdiRed,
-                                modifier = actionModifier,
+                            modifier = Modifier.fillMaxWidth(),
                             onClick = onAddClient,
                         )
                         QuickActionChip(
                             text = "Registrar libro",
                             color = CdiBlueDark,
-                                modifier = actionModifier,
+                            modifier = Modifier.fillMaxWidth(),
                             onClick = onRegisterBook,
                         )
                         QuickActionChip(
                             text = "Nueva venta",
                             color = CdiRed,
-                                modifier = actionModifier,
+                            modifier = Modifier.fillMaxWidth(),
                             onClick = onNewSale,
                         )
-                        }
                     }
                 }
             }
