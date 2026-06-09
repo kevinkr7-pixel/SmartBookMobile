@@ -3,6 +3,7 @@ package co.edu.cecar.smartbookmobile.features.sales
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.edu.cecar.smartbookmobile.core.model.Book
+import co.edu.cecar.smartbookmobile.core.model.IncomeDetail
 import co.edu.cecar.smartbookmobile.core.model.InventoryItem
 import co.edu.cecar.smartbookmobile.core.model.Lot
 import co.edu.cecar.smartbookmobile.core.model.SaleRequest
@@ -13,7 +14,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+
+data class SaleBookPrice(
+    val valorCompra: Double,
+    val valorVentaPublico: Double,
+)
 
 data class SalesUiState(
     val isListLoading: Boolean = false,
@@ -23,6 +30,7 @@ data class SalesUiState(
     val books: List<Book> = emptyList(),
     val inventory: List<InventoryItem> = emptyList(),
     val lots: List<Lot> = emptyList(),
+    val pricesByBook: Map<String, SaleBookPrice> = emptyMap(),
     val search: String = "",
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -59,10 +67,12 @@ class SalesViewModel(
             val booksDeferred = async { repository.getBooks() }
             val lotsDeferred = async { repository.getLots() }
             val inventoryDeferred = async { repository.getInventory() }
+            val incomesDeferred = async { repository.getIncomes() }
 
             val booksResult = booksDeferred.await()
             val lotsResult = lotsDeferred.await()
             val inventoryResult = inventoryDeferred.await()
+            val incomesResult = incomesDeferred.await()
 
             val books = when (booksResult) {
                 is AppResult.Success -> booksResult.data
@@ -103,11 +113,31 @@ class SalesViewModel(
                 AppResult.Loading -> emptyList()
             }
 
+            val pricesByBook = when (incomesResult) {
+                is AppResult.Success -> incomesResult.data
+                    .take(MAX_INCOME_DETAILS_FOR_PRICE_FALLBACK)
+                    .map { income ->
+                        async {
+                            when (val detail = repository.getIncomeDetail(income.id)) {
+                                is AppResult.Success -> detail.data
+                                else -> null
+                            }
+                        }
+                    }
+                    .awaitAll()
+                    .filterNotNull()
+                    .toPriceMap()
+
+                is AppResult.Error -> emptyMap()
+                AppResult.Loading -> emptyMap()
+            }
+
             _state.value = _state.value.copy(
                 isCatalogLoading = false,
                 books = books,
                 inventory = inventory,
                 lots = lots,
+                pricesByBook = pricesByBook,
             )
         }
     }
@@ -139,4 +169,38 @@ class SalesViewModel(
     fun clearMessages() {
         _state.value = _state.value.copy(errorMessage = null, successMessage = null)
     }
+
+    private companion object {
+        const val MAX_INCOME_DETAILS_FOR_PRICE_FALLBACK = 80
+    }
 }
+
+fun Book.salePriceKey(): String =
+    salePriceKey(nombre = nombre, nivel = nivel, tipo = tipoLabel())
+
+private fun List<IncomeDetail>.toPriceMap(): Map<String, SaleBookPrice> {
+    val prices = linkedMapOf<String, SaleBookPrice>()
+    forEach { detail ->
+        val key = salePriceKey(detail.libroNombre, detail.nivel, detail.tipo)
+        if (key.isNotBlank() && key !in prices) {
+            prices[key] = SaleBookPrice(
+                valorCompra = detail.valorCompra,
+                valorVentaPublico = detail.valorVentaPublico,
+            )
+        }
+    }
+    return prices
+}
+
+private fun salePriceKey(nombre: String, nivel: String, tipo: String): String =
+    listOf(nombre.normalizeKey(), nivel.normalizeKey(), tipo.normalizeBookType().normalizeKey()).joinToString("|")
+
+private fun String.normalizeBookType(): String =
+    when (trim()) {
+        "1" -> "StudentsBook"
+        "2" -> "Workbook"
+        else -> this
+    }
+
+private fun String.normalizeKey(): String =
+    trim().lowercase()

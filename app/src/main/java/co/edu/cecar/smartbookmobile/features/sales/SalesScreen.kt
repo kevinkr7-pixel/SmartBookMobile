@@ -145,6 +145,7 @@ fun SalesScreen(
             books = state.books,
             inventory = state.inventory,
             lots = state.lots,
+            pricesByBook = state.pricesByBook,
             isCatalogLoading = state.isCatalogLoading,
             isSubmitting = state.isSubmittingSale,
             errorMessage = state.errorMessage,
@@ -211,6 +212,7 @@ private fun SaleFormDialog(
     books: List<Book>,
     inventory: List<InventoryItem>,
     lots: List<Lot>,
+    pricesByBook: Map<String, SaleBookPrice>,
     isCatalogLoading: Boolean,
     isSubmitting: Boolean,
     errorMessage: String?,
@@ -259,7 +261,8 @@ private fun SaleFormDialog(
     }
 
     val total = items.sumOf { item ->
-        val price = books.firstOrNull { it.id == item.bookId }?.valorVentaPublico ?: 0.0
+        val selectedBook = books.firstOrNull { it.id == item.bookId }
+        val price = selectedBook?.effectiveSalePrice(pricesByBook)?.valorVentaPublico ?: 0.0
         val quantity = item.quantity.toIntOrNull() ?: 0
         price * quantity
     }
@@ -341,6 +344,7 @@ private fun SaleFormDialog(
                                         books = books,
                                         inventory = inventory,
                                         lots = lots,
+                                        pricesByBook = pricesByBook,
                                         filteredBooks = filteredBooks,
                                         searchBook = searchBook,
                                         onSearchBookChange = { searchBook = it },
@@ -374,6 +378,7 @@ private fun SaleFormDialog(
                                         books = books,
                                         inventory = inventory,
                                         lots = lots,
+                                        pricesByBook = pricesByBook,
                                         filteredBooks = filteredBooks,
                                         searchBook = searchBook,
                                         onSearchBookChange = { searchBook = it },
@@ -560,6 +565,7 @@ private fun ItemsSection(
     books: List<Book>,
     inventory: List<InventoryItem>,
     lots: List<Lot>,
+    pricesByBook: Map<String, SaleBookPrice>,
     filteredBooks: List<Book>,
     searchBook: String,
     onSearchBookChange: (String) -> Unit,
@@ -627,7 +633,7 @@ private fun ItemsSection(
             items.forEach { item ->
                 val selectedBook = books.firstOrNull { it.id == item.bookId }
                 val lotsForBook = selectedBook?.id?.let { getLotsForBook(it, books, inventory, lots) }.orEmpty()
-                val unitPrice = selectedBook?.valorVentaPublico ?: 0.0
+                val unitPrice = selectedBook?.effectiveSalePrice(pricesByBook)?.valorVentaPublico ?: 0.0
                 val quantity = item.quantity.toIntOrNull() ?: 0
                 val subtotal = unitPrice * quantity
 
@@ -819,6 +825,15 @@ private fun <T> SelectorField(
 
 private fun currency(value: Double): String =
     NumberFormat.getCurrencyInstance(Locale("es", "CO")).format(value)
+
+private fun Book.effectiveSalePrice(fallbackPrices: Map<String, SaleBookPrice>): SaleBookPrice {
+    val ownCompra = valorCompra ?: 0.0
+    val ownVenta = valorVentaPublico ?: 0.0
+    if (ownCompra > 0.0 || ownVenta > 0.0) {
+        return SaleBookPrice(valorCompra = ownCompra, valorVentaPublico = ownVenta)
+    }
+    return fallbackPrices[salePriceKey()] ?: SaleBookPrice(valorCompra = ownCompra, valorVentaPublico = ownVenta)
+}
 
 private fun getLotsForBook(
     bookId: Int,

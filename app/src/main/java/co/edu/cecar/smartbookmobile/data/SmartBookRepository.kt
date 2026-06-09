@@ -9,6 +9,7 @@ import co.edu.cecar.smartbookmobile.core.model.CreateIncomeDto
 import co.edu.cecar.smartbookmobile.core.model.CreateLotDto
 import co.edu.cecar.smartbookmobile.core.model.DashboardResponse
 import co.edu.cecar.smartbookmobile.core.model.Income
+import co.edu.cecar.smartbookmobile.core.model.IncomeDetail
 import co.edu.cecar.smartbookmobile.core.model.InventoryItem
 import co.edu.cecar.smartbookmobile.core.model.LoginRequest
 import co.edu.cecar.smartbookmobile.core.model.LoginResponse
@@ -103,6 +104,9 @@ class SmartBookRepository(
 
     suspend fun getIncomes(lote: String = ""): AppResult<List<Income>> =
         api.get(withQuery(ApiRoutes.INCOMES, "Lote", lote))
+
+    suspend fun getIncomeDetail(id: Int): AppResult<IncomeDetail> =
+        api.get("${ApiRoutes.INCOMES}/$id")
 
     suspend fun createIncome(payload: CreateIncomeDto): AppResult<JsonObject> =
         api.post(ApiRoutes.INCOMES, payload)

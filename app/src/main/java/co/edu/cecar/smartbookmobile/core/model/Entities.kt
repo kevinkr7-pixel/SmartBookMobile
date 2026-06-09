@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 
 @Serializable
@@ -92,7 +93,7 @@ data class Book(
     val nivel: String = "",
     @SerialName("tipo") val tipoRaw: JsonElement? = null,
     val edicion: String = "",
-    val lote: String? = null,
+    @SerialName("lote") val loteRaw: JsonElement? = null,
     @SerialName("stockTotal") val stockTotal: Int = 0,
     @SerialName("valorCompra") @JsonNames("valorCompa") val valorCompra: Double? = null,
     @SerialName("valorVentaPublico") @JsonNames("valorVentaPulico") val valorVentaPublico: Double? = null,
@@ -101,6 +102,9 @@ data class Book(
         val primitive = tipoRaw as? JsonPrimitive ?: return ""
         return primitive.content
     }
+
+    val lote: String?
+        get() = loteRaw?.asPlainString()
 }
 
 @Serializable
@@ -119,7 +123,7 @@ data class CreateBookDto(
     val tipo: Int,
     val edicion: String,
     val unidades: Int,
-    val lote: String,
+    val lote: Int,
     val valorCompra: Double,
     val valorVentaPublico: Double,
 )
@@ -131,16 +135,19 @@ data class UpdateBookDto(
     val tipo: Int,
     val edicion: String,
     val unidades: Int? = null,
-    val lote: String? = null,
+    val lote: Int? = null,
     val valorCompra: Double? = null,
     val valorVentaPublico: Double? = null,
 )
 
 @Serializable
 data class Lot(
-    @SerialName("codigo") val lote: String = "",
+    @SerialName("codigo") val codigoRaw: JsonElement? = null,
     val actual: Boolean = false,
-)
+) {
+    val lote: String
+        get() = codigoRaw?.asPlainString().orEmpty()
+}
 
 @Serializable
 data class CreateLotDto(
@@ -160,14 +167,34 @@ data class InventoryItem(
 )
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class Income(
     val id: Int = 0,
     val fecha: String = "",
-    val codigoLote: String = "",
+    @SerialName("lote") @JsonNames("codigoLote") val codigoLoteRaw: JsonElement? = null,
     val unidades: Int = 0,
     val valorCompra: Double = 0.0,
     val valorVentaPublico: Double = 0.0,
-)
+) {
+    val codigoLote: String
+        get() = codigoLoteRaw?.asPlainString().orEmpty()
+}
+
+@Serializable
+data class IncomeDetail(
+    val id: Int = 0,
+    @SerialName("lote") val loteRaw: JsonElement? = null,
+    val fecha: String = "",
+    val libroNombre: String = "",
+    val nivel: String = "",
+    val tipo: String = "",
+    val unidades: Int = 0,
+    val valorCompra: Double = 0.0,
+    val valorVentaPublico: Double = 0.0,
+) {
+    val lote: String
+        get() = loteRaw?.asPlainString().orEmpty()
+}
 
 @Serializable
 data class CreateIncomeDto(
@@ -260,3 +287,12 @@ data class ApiError(
     val message: String? = null,
     val errors: Map<String, List<String>>? = null,
 )
+
+private fun JsonElement.asPlainString(): String {
+    val primitive = this as? JsonPrimitive ?: return toString()
+    primitive.intOrNull?.let { return it.toString() }
+    primitive.doubleOrNull?.let { value ->
+        return if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+    }
+    return primitive.content
+}
