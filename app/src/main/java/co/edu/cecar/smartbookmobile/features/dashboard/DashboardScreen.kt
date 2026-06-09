@@ -1,13 +1,12 @@
 package co.edu.cecar.smartbookmobile.features.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -58,6 +58,15 @@ fun DashboardScreen(
 
     if (state.isLoading) {
         LoadingContent()
+        return
+    }
+
+    if (!state.errorMessage.isNullOrBlank()) {
+        Text(
+            text = state.errorMessage ?: "No se pudo cargar el dashboard.",
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp),
+        )
         return
     }
 
@@ -199,45 +208,13 @@ private fun SalesTodayCard(sales: List<DashboardSale>) {
                 )
             } else {
                 sales.take(4).forEach { sale ->
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Factura #${sale.numeroRecibo}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = formatSaleTime(sale.fecha),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                text = currency(sale.total),
-                                color = CdiRed,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
+                    DashboardSaleRow(sale = sale)
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GeneralInfoCard(
     onAddClient: () -> Unit,
@@ -273,25 +250,31 @@ private fun GeneralInfoCard(
                         color = CdiRed,
                         style = MaterialTheme.typography.titleLarge,
                     )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val compact = maxWidth < 420.dp
+                        val actionModifier = if (compact) Modifier.fillMaxWidth() else Modifier
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                         QuickActionChip(
                             text = "Agregar cliente",
                             color = CdiRed,
+                                modifier = actionModifier,
                             onClick = onAddClient,
                         )
                         QuickActionChip(
                             text = "Registrar libro",
                             color = CdiBlueDark,
+                                modifier = actionModifier,
                             onClick = onRegisterBook,
                         )
                         QuickActionChip(
                             text = "Nueva venta",
                             color = CdiRed,
+                                modifier = actionModifier,
                             onClick = onNewSale,
                         )
+                        }
                     }
                 }
             }
@@ -300,15 +283,62 @@ private fun GeneralInfoCard(
 }
 
 @Composable
+private fun DashboardSaleRow(sale: DashboardSale) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = "Factura #${sale.numeroRecibo}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = formatSaleTime(sale.fecha),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            Text(
+                text = currency(sale.total),
+                color = CdiRed,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuickActionChip(
     text: String,
     color: Color,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         color = color,
         shape = RoundedCornerShape(999.dp),
+        modifier = modifier,
     ) {
         Text(
             text = text,
@@ -327,13 +357,17 @@ private data class StatItem(
 )
 
 private fun currency(value: Double): String =
-    NumberFormat.getCurrencyInstance(Locale("es", "CO")).format(value)
+    runCatching {
+        NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CO")).format(value)
+    }.getOrElse {
+        "$ ${"%,.2f".format(Locale.US, value)}"
+    }
 
 private fun formatSaleTime(raw: String): String {
-    return try {
+    return runCatching {
         val dateTime = LocalDateTime.parse(raw)
-        dateTime.format(DateTimeFormatter.ofPattern("h:mm a", Locale("es", "CO"))).lowercase(Locale("es", "CO"))
-    } catch (_: Exception) {
-        raw
-    }
+        dateTime
+            .format(DateTimeFormatter.ofPattern("h:mm a", Locale.forLanguageTag("es-CO")))
+            .lowercase(Locale.forLanguageTag("es-CO"))
+    }.getOrElse { raw.take(16).replace("T", " ") }
 }
