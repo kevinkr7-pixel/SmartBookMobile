@@ -6,7 +6,7 @@ export ANDROID_SDK_ROOT="$ROOT_DIR/.android-sdk"
 export PATH="$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
 
 AVD_NAME="SmartBook_API_35"
-PACKAGE="com.cecar.smartbookmobile"
+PACKAGE="co.edu.cecar.smartbookmobile"
 ACTIVITY=".MainActivity"
 
 adb kill-server || true

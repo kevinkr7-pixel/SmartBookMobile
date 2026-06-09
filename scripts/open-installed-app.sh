@@ -7,4 +7,4 @@ export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
 
 adb start-server
 adb devices | grep -q "emulator-" || { echo "No hay emulador conectado."; exit 1; }
-adb shell am start -n com.cecar.smartbookmobile/.MainActivity
+adb shell am start -n co.edu.cecar.smartbookmobile/.MainActivity
